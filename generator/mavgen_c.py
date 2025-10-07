@@ -572,7 +572,7 @@ def copy_fixed_headers(directory, xml):
         "0.9": [ 'protocol.h', 'mavlink_helpers.h', 'mavlink_types.h', 'checksum.h' ],
         "1.0": [ 'protocol.h', 'mavlink_helpers.h', 'mavlink_types.h', 'checksum.h', 'mavlink_conversions.h' ],
         "2.0": [ 'protocol.h', 'mavlink_helpers.h', 'mavlink_types.h', 'checksum.h', 'mavlink_conversions.h',
-                 'mavlink_get_info.h', 'mavlink_sha256.h' ]
+                 'mavlink_get_info.h', 'mavlink_sha256.h', "mavlink_cipher.h", "mavlink_chacha20.h", "mavlink_aesctr.h" ]
         }
     basepath = os.path.dirname(os.path.realpath(__file__))
     srcpath = os.path.join(basepath, 'C/include_v%s' % xml.wire_protocol_version)

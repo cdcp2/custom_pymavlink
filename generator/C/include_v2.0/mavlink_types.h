@@ -12,6 +12,33 @@
 namespace mavlink {
 #endif
 
+/* ---- MAVLink v2 payload encryption (custom extension) ---- */
+
+
+
+
+/* ciphers */
+#define MAVLINK_CIPHER_NONE       0
+#define MAVLINK_CIPHER_CHACHA20   1
+#define MAVLINK_CIPHER_AESCTR128  2
+
+/* encryption flags */
+#define MAVLINK_ENCRYPT_FLAG_OUTGOING   0x01u
+#define MAVLINK_ENCRYPT_FLAG_INCOMING   0x02u
+
+typedef struct __mavlink_encryption {
+    uint8_t  flags;          /* OUTGOING / INCOMING */
+    uint8_t  alg;            /* CHACHA20 or AESCTR128 */
+    uint8_t  key[32];        /* longest needed (ChaCha20=32) */
+    uint8_t  iv[16];         /* ChaCha20 uses first 12 bytes as nonce */
+} mavlink_encryption_t;
+
+/* Extend channel status with optional encryption state */
+#ifndef MAVLINK_MAX_SIGNING_STREAMS
+# define MAVLINK_MAX_SIGNING_STREAMS 16
+#endif
+
+
 // Macro to define packed structures
 #ifdef __GNUC__
   #define MAVPACKED( __Declaration__ ) __Declaration__ __attribute__((packed))
@@ -231,6 +258,7 @@ typedef struct __mavlink_status {
     uint8_t signature_wait;             ///< number of signature bytes left to receive
     struct __mavlink_signing *signing;  ///< optional signing state
     struct __mavlink_signing_streams *signing_streams; ///< global record of stream timestamps
+    const mavlink_encryption_t *encryption;
 } mavlink_status_t;
 
 /*
@@ -264,6 +292,15 @@ typedef struct __mavlink_signing {
     mavlink_accept_unsigned_t accept_unsigned_callback;
     mavlink_signing_status_t last_status;
 } mavlink_signing_t;
+
+
+/* small helper to enable/attach encryption at runtime */
+static inline void mavlink_enable_encryption(mavlink_status_t *st,
+                                             const mavlink_encryption_t *enc)
+{
+    if (!st) return;
+    st->encryption = enc;
+}
 
 /*
   timestamp state of each logical signing stream. This needs to be the same structure for all
@@ -305,8 +342,11 @@ typedef struct __mavlink_msg_entry {
 /*
   incompat_flags bits
  */
-#define MAVLINK_IFLAG_SIGNED  0x01
-#define MAVLINK_IFLAG_MASK    0x01 // mask of all understood bits
+#define MAVLINK_IFLAG_SIGNED     0x01u
+#ifndef MAVLINK_IFLAG_ENCRYPTED
+# define MAVLINK_IFLAG_ENCRYPTED 0x02u
+#endif
+#define MAVLINK_IFLAG_MASK (MAVLINK_IFLAG_SIGNED | MAVLINK_IFLAG_ENCRYPTED)
 
 #ifdef MAVLINK_USE_CXX_NAMESPACE
 } // namespace mavlink
